@@ -23,17 +23,31 @@ public:
 
     void render(cv::Mat& image, const hittable& world) {
 		initialize();
-		for (int j = 0; j < image_height; j++) {
-			if (j % 20 == 0) {
-				std::cout << "Scanlines remaining: " << image_height - j << '\n';
+		const int height = image.rows;
+		const int width = image.cols;
+		vec3** imageArray = new vec3*[height];
+		for (int i = 0; i < height; i++) {
+			imageArray[i] = new vec3[width];
+			for (int j = 0; j < width; j++) {
+				imageArray[i][j] = vec3(0, 0, 0);
 			}
-			for (int i = 0; i < image_width; i++) {
-				color pixel_color = color(0, 0, 0);
-				for (int sample = 0; sample < samples_per_pixel; sample++) {
-					ray r = get_ray(i, j);
-					pixel_color += ray_color(r, maxRayDepth, world);
+		}
+
+		int totalRayCount = samples_per_pixel * image_height * image_width;
+
+		for (int sample = 0; sample < samples_per_pixel; sample++) {
+			for (int j = 0; j < image_height; j++) {
+				if (j % 50 == 0) {
+					cv::imshow("image", image);
+					cv::waitKey(1);
+					std::cout << "Scanlines remaining: " << totalRayCount - (j * width + sample * height * width) << '\n';
 				}
-				writeImage(image, j, i, pixel_color * pixel_samples_scale);
+				for (int i = 0; i < image_width; i++) {
+					ray r = get_ray(i, j);
+					imageArray[j][i] += ray_color(r, maxRayDepth, world);
+
+					writeImage(image, j, i, imageArray[j][i] * (1.0 / (sample + 1)));
+				}
 			}
 		}
 	}
