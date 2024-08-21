@@ -1,11 +1,13 @@
 #include <opencv2/opencv.hpp>
 
-#include <cuda_runtime.h>
+/*#include <cuda_runtime.h>
 #include <device_launch_parameters.h>
 
-#include "computeShader.cuh"
+#include "computeShader.cuh"*/
 
 #include "utils.h"
+
+#include "bvh.h"
 
 #include "hittable.h"
 #include "hittable_list.h"
@@ -35,8 +37,8 @@ int main()
     auto ground_material = make_shared<lambertian>(color(0.5, 0.5, 0.5));
     world.add(make_shared<sphere>(point3(0, -1000, 0), 1000, ground_material));
 
-    for (int a = -1; a < 5; a++) {
-        for (int b = -1; b < 5; b++) {
+    for (int a = -11; a < 11; a++) {
+        for (int b = -11; b < 11; b++) {
             auto choose_mat = random_double();
             point3 center(a + 0.9 * random_double(), 0.2, b + 0.9 * random_double());
 
@@ -74,10 +76,12 @@ int main()
     auto material3 = make_shared<metal>(color(0.7, 0.6, 0.5), 0.0);
     world.add(make_shared<sphere>(point3(4, 1, 0), 1.0, material3));
 
+    world = hittable_list(make_shared<bvh_node>(world));
+
     // Camera
     cv::Mat image(image_height, image_width, CV_8UC3, cv::Scalar(0, 0, 0));
 	
-    cam.samples_per_pixel = 1;
+    cam.samples_per_pixel = 20;
     cam.maxRayDepth = 10;
 
     cam.vfov = 20;
