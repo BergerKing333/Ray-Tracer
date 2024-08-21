@@ -47,7 +47,7 @@
     <ClInclude Include="material.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="computerShader.cuh">
+    <ClInclude Include="computeShader.cuh">
       <Filter>Source Files</Filter>
     </ClInclude>
   </ItemGroup>

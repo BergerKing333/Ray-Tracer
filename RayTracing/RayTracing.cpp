@@ -1,6 +1,9 @@
 #include <opencv2/opencv.hpp>
 
 #include <cuda_runtime.h>
+#include <device_launch_parameters.h>
+
+#include "computeShader.cuh"
 
 #include "utils.h"
 
@@ -21,7 +24,7 @@ int main()
     double aspect_ratio = 16.0 / 9.0;
     int image_width = 1200;
 
-    camera cam = camera();
+    camera cam;
     cam.aspect_ratio = aspect_ratio;
     cam.image_width = image_width;
 
@@ -74,8 +77,8 @@ int main()
     // Camera
     cv::Mat image(image_height, image_width, CV_8UC3, cv::Scalar(0, 0, 0));
 	
-    cam.samples_per_pixel = 10;
-    cam.maxRayDepth = 50;
+    cam.samples_per_pixel = 1;
+    cam.maxRayDepth = 10;
 
     cam.vfov = 20;
     cam.lookfrom = point3(13, 2, 3);
@@ -85,7 +88,8 @@ int main()
     cam.defocus_angle = 0.6;
     cam.focus_dist = 10.0;
 
-    cam.render(image, world);
+    // cam.render(image, world);
+    cam.threadedRender(image, world, cam);
 
 	cv::imshow("image", image);
 	cv::waitKey(0);

@@ -2,9 +2,13 @@
 
 using color = vec3;
 #include "material.h"
+#include <thread>
 
 class camera {
 public:
+	camera(const camera&) = delete;
+	camera& operator=(const camera&) = delete;
+
 	double aspect_ratio;
 	int image_width;
 	int image_height;   // Rendered image height
@@ -25,11 +29,11 @@ public:
 		initialize();
 		const int height = image.rows;
 		const int width = image.cols;
-		vec3** imageArray = new vec3*[height];
+		color** imageArray = new color*[height];
 		for (int i = 0; i < height; i++) {
-			imageArray[i] = new vec3[width];
+			imageArray[i] = new color[width];
 			for (int j = 0; j < width; j++) {
-				imageArray[i][j] = vec3(0, 0, 0);
+				imageArray[i][j] = color(0, 0, 0);
 			}
 		}
 
@@ -52,13 +56,65 @@ public:
 		}
 	}
 
+	void threadedRender(cv::Mat& image, const hittable& world, camera& cam) {
+		initialize();
+		const int height = image.rows;
+		const int width = image.cols;
+
+		imageArray = new color*[height];
+		for (int i = 0; i < height; i++) {
+			imageArray[i] = new color[width];
+			for (int j = 0; j < width; j++) {
+				imageArray[i][j] = color(0, 0, 0);
+			}
+		}
+
+		int totalRayCount = samples_per_pixel * image_height * image_width;
+		int numThreads = std::thread::hardware_concurrency();
+		int rowsPerThread = image_height / numThreads;
+
+		std::vector<std::thread> threads;
+
+		
+			
+		for (int t = 0; t < numThreads; t++) {
+			threads.emplace_back(&camera::threadedHelper, &cam,std::ref(image), std::ref(world), t * rowsPerThread, (t + 1) * rowsPerThread);
+		}
+		for (auto& thread : threads) {
+			thread.join();
+		}
+		
+		
+	}
+
+	void threadedHelper(cv::Mat& image, const hittable& world, int startRow, int endRow) {
+		for (int sample = 0; sample < samples_per_pixel; sample++) {
+			for (int j = startRow; j < endRow; j++) {
+				for (int i = 0; i < image_width; i++) {
+					ray r = get_ray(i, j);
+					color newColor = ray_color(r, maxRayDepth, world);
+
+					//imageArrayMutex.lock();
+					imageArray[j][i] += newColor;
+
+
+					writeImage(image, j, i, imageArray[j][i] * (1.0 / (sample + 1)));
+					// imageArrayMutex.unlock();
+				}
+			}
+		}
+	}
+
 
 private:
+	color** imageArray;
 	double pixel_samples_scale;
     point3 center;         // Camera center
     point3 pixel00_loc;    // Location of pixel 0, 0
     vec3   pixel_delta_u;  // Offset to pixel to the right
     vec3   pixel_delta_v;  // Offset to pixel below
+
+	std::mutex imageArrayMutex;
 
 	vec3 u, v, w;
 
